@@ -34,14 +34,13 @@ def deserialize(rec):
     return row
 
 
-def select(cols, where, m):
+def select(col_names, _from, where):
     rs = []
-    for i in range(0, len(m), RECSIZE):
-        rec = m[i:i+RECSIZE]
+    for i in range(0, len(_from), RECSIZE):
+        rec = _from[i:i+RECSIZE]
         row = deserialize(rec)
         if where is None or where(row):
-            field_set = [row[i] for i in cols]
-            rs.append(field_set)
+            rs.append([row[name] for name in col_nums(col_names)])
     return rs
 
 
@@ -65,6 +64,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     RECSIZE = 256
-    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as m:
-        rs = select(col_nums(args.select), where(args.filter), m)
-    print(rs)
+    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as _from:
+        rs = select(args.select, _from, where(args.filter))
+    print(rs, args.order)
