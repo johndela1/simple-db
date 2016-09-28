@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import struct
 from mmap import mmap
 
@@ -16,28 +17,22 @@ def deserialize(rec):
     def tr_date(i):
         year = i >> 0x9
         month = i >> 0x5 & 0xf
-        date = i & 0x1f
-        return ['%.2d-%.2d-%.2d' % (year, month, date)]
+        day = i & 0x1f
+        return [datetime(year, month, day)]
 
     def tr_rev(i):
-        return ["%.2f" % float(i/100)]
-
-    def tr_view_time(i):
-        hours = i // 60
-        minutes = i % 60
-        return ["%d:%.2d" % (hours, minutes)]
+        return [float(i/100)]
 
     raw = struct.unpack(FMT, rec)
 
-    row = (tr_str(raw[0:3]) + tr_date(raw[3]) + tr_rev(raw[4]) +
-           tr_view_time(raw[5]))
+    row = tr_str(raw[0:3]) + tr_date(raw[3]) + tr_rev(raw[4]) + [raw[5]]
     return row
 
 
-def select(col_names, _from, where):
+def select(col_names,from_ , where):
     rs = []
-    for i in range(0, len(_from), RECSIZE):
-        rec = _from[i:i+RECSIZE]
+    for i in range(0, len(from_), RECSIZE):
+        rec = from_[i:i+RECSIZE]
         row = deserialize(rec)
         if where is None or where(row):
             rs.append([row[name] for name in col_nums(col_names)])
@@ -64,6 +59,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     RECSIZE = 256
-    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as _from:
-        rs = select(args.select, _from, where(args.filter))
+    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as from_:
+        rs = select(args.select, from_, where(args.filter))
     print(rs, args.order)
