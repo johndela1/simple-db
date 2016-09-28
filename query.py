@@ -36,8 +36,8 @@ def deserialize(rec):
 
 def select(cols, where, m):
     rs = []
-    for i in range(0, len(m), 256):
-        rec = m[i:i+256]
+    for i in range(0, len(m), RECSIZE):
+        rec = m[i:i+RECSIZE]
         row = deserialize(rec)
         if where == None or where(row):
             field_set = [row[i] for i in cols]
