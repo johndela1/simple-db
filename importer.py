@@ -8,7 +8,7 @@ class Fmt(Structure):
     _fields_ = [('stb', c_char * 64), ('title', c_char *64)]
 
 #stb, title, provider, date, rev, view_time
-FMT = '64s 64s 64s h b b h h 56x'
+FMT = '64s 64s 64s I H H 56x'
 
 
 def serialize(l):
@@ -16,7 +16,8 @@ def serialize(l):
         return [bytes(e, 'utf-8') for e in s]
 
     def tr_date(s):
-        return [int(s) for s in s.split('-')]
+        year, month, day = [int(s) for s in s.split('-')]
+        return [year << 9 | month << 5 | day]
 
     def tr_rev(s):
         return [int(float(s)*100)]
@@ -42,10 +43,3 @@ with open('data.db', 'wb') as f: #, open('data.idx','wb') as idx:
             continue
         rec = serialize(line.split('|'))
         f.write(rec)
-
-exit()
-        # for f in struct.unpack(FMT, rec):
-        #     if type(f) == bytes:
-        #         print(f.decode('utf8').rstrip('\0'))
-        #     else:
-        #         print(f)

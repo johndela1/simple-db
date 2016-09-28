@@ -9,11 +9,9 @@ import resource
 
 FIELDS = ['STB','TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME']
 
-class Fmt(Structure):
-    _fields_ = [('stb', c_char * 64), ('title', c_char *64)]
+# stb, title, provider, date, rev, view_time
+FMT = '64s 64s 64s I H H 56x'
 
-#stb, title, provider, date, rev, view_time
-FMT = '64s 64s 64s h b b h h 56x'
 
 
 def selected_cols(col_names):
