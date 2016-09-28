@@ -59,14 +59,10 @@ def where(filt):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--select')#, help='select statement')
-    parser.add_argument('-o', '--order')#, help='order')
+    parser.add_argument('-s', '--select', required=True)
+    parser.add_argument('-o', '--order')
     parser.add_argument('-f', '--filter')
     args = parser.parse_args()
-
-    if not args.select:
-        print("must provide columns")
-        exit()
 
     RECSIZE = 256
     with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as m:
