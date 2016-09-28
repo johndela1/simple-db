@@ -2,7 +2,7 @@ import argparse
 from ctypes import c_char, c_int
 from ctypes import Structure
 import struct
-import mmap
+from mmap import mmap
 import resource
 
 
@@ -38,6 +38,27 @@ def serialize(l):
     return struct.pack(FMT, *fields)
 
 
+def sel(row, cols):
+    res = []
+    for c in cols:
+        x=row[c]
+        if type(x) == bytes:
+            res.append(x.decode('utf8').rstrip('\0'))
+        else:
+            res.append(x)
+    return res
+
+def select(cols):
+    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as m:
+        res = []
+        for i in range(0, len(m), 256):
+            row = struct.unpack(FMT, m[i:i+256])
+            res.append(sel(row, cols))
+        res = [sel(struct.unpack(FMT, m[i:i+256]), cols)
+               for i in range(0, len(m), RECSIZE)]
+    m.close()
+    return res
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--select')#, help='select statement')
@@ -51,22 +72,7 @@ if __name__ == '__main__':
 
     PAGESIZE = resource.getpagesize()
     RECSIZE = 256
-    BLKSIZE = PAGESIZE / RECSIZE
+
     cols = selected_cols(args.select)
-    with open('data.db', 'r+b') as f, \
-         open('data.idx','wb') as idx, \
-         mmap.mmap(f.fileno(), 0) as m:
-        foo = []
-        for i in range(0, len(m), 256):
-            print('---')
-            rec = struct.unpack(FMT, m[i:i+256])
-            res = []
-            for c in cols:
-                x=rec[c]
-                if type(x) == bytes:
-                    res.append(x.decode('utf8').rstrip('\0'))
-                else:
-                    res.append(x)
-            foo.append(res)
-        m.close()
-    print(foo)
+    res = select(cols)
+    print(res)
