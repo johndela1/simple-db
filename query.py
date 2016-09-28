@@ -39,7 +39,7 @@ def select(cols, where, m):
     for i in range(0, len(m), RECSIZE):
         rec = m[i:i+RECSIZE]
         row = deserialize(rec)
-        if where == None or where(row):
+        if where is None or where(row):
             field_set = [row[i] for i in cols]
             rs.append(field_set)
     return rs
