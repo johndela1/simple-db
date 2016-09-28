@@ -39,18 +39,22 @@ def select(cols, where, m):
     for i in range(0, len(m), 256):
         rec = m[i:i+256]
         row = deserialize(rec)
-        if where(row):
+        if where == None or where(row):
             field_set = [row[i] for i in cols]
             rs.append(field_set)
     return rs
 
 
-def cols(col_names):
+def col_nums(col_names):
     return [FIELDS.index(col) for col in col_names.split(',')]
 
 
 def where(filt):
-    return lambda rec: True
+    if filt == None:
+        return None
+    col_name, val = filt.split('=')
+    col_num = col_nums(col_name)[0]
+    return lambda rec:rec[col_num] == val 
 
 
 if __name__ == '__main__':
@@ -66,5 +70,5 @@ if __name__ == '__main__':
 
     RECSIZE = 256
     with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as m:
-        rs = select(cols(args.select), where(args.filter), m)
+        rs = select(col_nums(args.select), where(args.filter), m)
     print(rs)
