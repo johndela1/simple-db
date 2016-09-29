@@ -36,7 +36,8 @@ def select(col_names, table, where=None, order=None):
         if where is None or where(row):
             rs.append(row)
     if order is None:
-        return rs
+        col_getter = itemgetter(*(col_nums(col_names)))
+        return (col_getter(r) for r in rs)
     return sorted(rs, key=itemgetter(*col_nums(order)))
 
 
