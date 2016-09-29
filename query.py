@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime
 import struct
 from mmap import mmap
+from operator import itemgetter
 
 
 COL_NAMES = ['STB','TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME']
@@ -34,7 +35,8 @@ def select(col_names, table, where=None, order=None):
         row = deserialize(rec)
         if where is None or where(row):
             rs.append(row)
-    from operator import itemgetter
+    if order is None:
+        return rs
     return sorted(rs, key=itemgetter(*col_nums(order)))
 
 
