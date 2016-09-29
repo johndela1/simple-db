@@ -66,6 +66,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     RECSIZE = 256
-    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as table:
-        rs = select(args.select, from_(table), where(args.filter), args.order)
-    print(rs)
+    try:
+        with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as table:
+            rs = select(args.select, from_(table), where(args.filter), args.order)
+            for r in rs:
+                print(','.join([str(i) for i in r]))
+    except FileNotFoundError:
+        pass
