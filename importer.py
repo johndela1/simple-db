@@ -2,12 +2,7 @@ import argparse
 import _pickle as pickle
 import fileinput
 from hashlib import sha1
-from ctypes import c_char, c_int
-from ctypes import Structure
 import struct
-
-class Fmt(Structure):
-    _fields_ = [('stb', c_char * 64), ('title', c_char *64)]
 
 #stb, title, provider, date, rev, view_time
 FMT = '64s 64s 64s I H H 56x'
@@ -35,8 +30,6 @@ def serialize(l):
 parser = argparse.ArgumentParser()
 parser.add_argument("infiles", nargs="*", default='-')
 args = parser.parse_args()
-
-fmt = Fmt()
 
 with open('data.db', 'ab') as db_file:
     try:
