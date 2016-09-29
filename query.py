@@ -4,7 +4,7 @@ import struct
 from mmap import mmap
 
 
-FIELDS = ['STB','TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME']
+COL_NAMES = ['STB','TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME']
 
 # stb, title, provider, date, rev, view_time
 FMT = '64s 64s 64s I H H 56x'
@@ -40,7 +40,7 @@ def select(col_names,from_ , where):
 
 
 def col_nums(col_names):
-    return [FIELDS.index(col) for col in col_names.split(',')]
+    return [COL_NAMES.index(col) for col in col_names.split(',')]
 
 
 def where(filt):
