@@ -1,9 +1,11 @@
 import argparse
+from contextlib import contextmanager
 import _pickle as pickle
 import fileinput
 from hashlib import sha1
 from mmap import mmap
 import struct
+import sys
 
 
 # stb, title, provider, date, rev, view_time
@@ -29,39 +31,51 @@ def serialize(l):
     return struct.pack(FMT, *fields)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("infiles", nargs="*", default='-')
-args = parser.parse_args()
-
-with open('data.db', 'w+b') as db_file:
+@contextmanager
+def load_idx():
     try:
         with open('data.idx', 'rb') as idx_file:
             idx = pickle.load(idx_file)
     except FileNotFoundError:
-        print("init idx")
         idx = {}
-
-    for line in fileinput.input(args.infiles):
-        if fileinput.isfirstline():
-            header = line
-            # print('header', header)
-            continue
-
-        tokens = line.rstrip('\n').split('|')
-        pk = (tokens[0]+tokens[1]+tokens[3]).encode()
-        h = sha1(pk).digest()
-        rec = serialize(line.split('|'))
-        if h in idx.keys():
-            end_pos = db_file.tell()
-            db_file.seek(idx[h])
-            db_file.write(rec)
-            db_file.seek(end_pos)
-            continue
-        idx[h] = db_file.tell()
-        db_file.write(rec)
-
+    yield idx
     with open('data.idx', 'wb') as idx_file:
         pickle.dump(idx, idx_file)
+
+
+def key(row):
+    cols = row.rstrip('\n').split('|')
+    return sha1(
+        (cols[0]+cols[1]+cols[3]).encode()
+    ).digest()
+
+
+def upsert(db_file, idx, row):
+
+    rec = serialize(row.split('|'))
+    k = key(row)
+    pos = idx.get(k, None)
+
+    if pos is not None:
+        end_pos = db_file.tell()
+        db_file.seek(pos)
+        db_file.write(rec)
+        db_file.seek(end_pos)
+    else:
+        idx[k] = db_file.tell()
+        db_file.write(rec)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("infiles", nargs="*", default='-')
+    args = parser.parse_args()
+
+    with open('data.db', 'w+b') as db_file, load_idx() as idx:
+        for row in fileinput.input(args.infiles):
+            if fileinput.isfirstline():
+                continue
+            upsert(db_file, idx, row)
 
 # stb, title, provider, date, rev, view_time
 # Subsequent imports with the same logical record should overwrite
