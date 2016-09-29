@@ -2,9 +2,11 @@ import argparse
 import _pickle as pickle
 import fileinput
 from hashlib import sha1
+from mmap import mmap
 import struct
 
-#stb, title, provider, date, rev, view_time
+
+# stb, title, provider, date, rev, view_time
 FMT = '64s 64s 64s I H H 56x'
 
 
@@ -31,7 +33,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("infiles", nargs="*", default='-')
 args = parser.parse_args()
 
-with open('data.db', 'ab') as db_file:
+with open('data.db', 'w+b') as db_file:
     try:
         with open('data.idx', 'rb') as idx_file:
             idx = pickle.load(idx_file)
@@ -47,13 +49,15 @@ with open('data.db', 'ab') as db_file:
 
         tokens = line.rstrip('\n').split('|')
         pk = (tokens[0]+tokens[1]+tokens[3]).encode()
-        h = sha1(pk).hexdigest()
-
-        if h in idx.keys():
-            print('repeat, skip')
-            continue
-        idx[h] = 1
+        h = sha1(pk).digest()
         rec = serialize(line.split('|'))
+        if h in idx.keys():
+            end_pos = db_file.tell()
+            db_file.seek(idx[h])
+            db_file.write(rec)
+            db_file.seek(end_pos)
+            continue
+        idx[h] = db_file.tell()
         db_file.write(rec)
 
     with open('data.idx', 'wb') as idx_file:
