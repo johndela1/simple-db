@@ -1,5 +1,7 @@
 import argparse
+import _pickle as pickle
 import fileinput
+from hashlib import sha1
 from ctypes import c_char, c_int
 from ctypes import Structure
 import struct
@@ -29,17 +31,42 @@ def serialize(l):
     fields = tr_str(l[:3]) + tr_date(l[3]) + tr_rev(l[4]) + tr_view_time(l[5])
     return struct.pack(FMT, *fields)
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("infiles", nargs="*", default='-')
 args = parser.parse_args()
 
 fmt = Fmt()
 
-with open('data.db', 'wb') as f: #, open('data.idx','wb') as idx:
+with open('data.db', 'ab') as db_file:
+    try:
+        with open('data.idx', 'rb') as idx_file:
+            idx = pickle.load(idx_file)
+    except FileNotFoundError:
+        print("init idx")
+        idx = {}
+
     for line in fileinput.input(args.infiles):
         if fileinput.isfirstline():
             header = line
-            print('header', header)
+            # print('header', header)
             continue
+
+        tokens = line.rstrip('\n').split('|')
+        pk = (tokens[0]+tokens[1]+tokens[3]).encode()
+        h = sha1(pk).hexdigest()
+
+        if h in idx.keys():
+            print('repeat, skip')
+            continue
+        idx[h] = 1
         rec = serialize(line.split('|'))
-        f.write(rec)
+        db_file.write(rec)
+
+    with open('data.idx', 'wb') as idx_file:
+        pickle.dump(idx, idx_file)
+
+# stb, title, provider, date, rev, view_time
+# Subsequent imports with the same logical record should overwrite
+# the earlier records.
+# Records in the datastore should be unique by STB, TITLE and DATE.
