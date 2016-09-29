@@ -24,22 +24,26 @@ def deserialize(rec):
         return [float(i/100)]
 
     raw = struct.unpack(FMT, rec)
-
     row = tr_str(raw[0:3]) + tr_date(raw[3]) + tr_rev(raw[4]) + [raw[5]]
     return row
 
 
-def select(col_names,from_ , where):
+def select(col_names, from_, where=None, order=None):
     rs = []
     for i in range(0, len(from_), RECSIZE):
         rec = from_[i:i+RECSIZE]
         row = deserialize(rec)
         if where is None or where(row):
-            rs.append([row[name] for name in col_nums(col_names)])
-    return rs
+            rs.append(row)
+            # rs.append([row[num] for num in col_nums(col_names)])
+    nums = col_nums(order)
+    from operator import itemgetter
+    return sorted(rs, key=itemgetter(*nums))
 
 
 def col_nums(col_names):
+    if col_names is None:
+        return None
     return [COL_NAMES.index(col) for col in col_names.split(',')]
 
 
@@ -60,5 +64,5 @@ if __name__ == '__main__':
 
     RECSIZE = 256
     with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as from_:
-        rs = select(args.select, from_, where(args.filter))
-    print(rs, args.order)
+        rs = select(args.select, from_, where(args.filter), args.order)
+    print(rs)
