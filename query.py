@@ -28,17 +28,14 @@ def deserialize(rec):
     return row
 
 
-def select(col_names, from_, where=None, order=None):
+def select(col_names, table, where=None, order=None):
     rs = []
-    for i in range(0, len(from_), RECSIZE):
-        rec = from_[i:i+RECSIZE]
+    for rec in table:
         row = deserialize(rec)
         if where is None or where(row):
             rs.append(row)
-            # rs.append([row[num] for num in col_nums(col_names)])
-    nums = col_nums(order)
     from operator import itemgetter
-    return sorted(rs, key=itemgetter(*nums))
+    return sorted(rs, key=itemgetter(*col_nums(order)))
 
 
 def col_nums(col_names):
@@ -55,6 +52,10 @@ def where(filt):
     return lambda rec:rec[col_num] == val 
 
 
+def from_(mm):
+    for i in range(0, len(mm), RECSIZE):
+        yield mm[i:i+RECSIZE]
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--select', required=True)
@@ -63,6 +64,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     RECSIZE = 256
-    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as from_:
-        rs = select(args.select, from_, where(args.filter), args.order)
+    with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as table:
+        rs = select(args.select, from_(table), where(args.filter), args.order)
     print(rs)
