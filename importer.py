@@ -7,9 +7,7 @@ from mmap import mmap
 import struct
 import sys
 
-
-# stb, title, provider, date, rev, view_time
-FMT = '64s 64s 64s I H H 56x'
+from util import COL_FMT
 
 
 def serialize(l):
@@ -28,7 +26,7 @@ def serialize(l):
         return [hours * 60 + minutes]
 
     fields = tr_str(l[:3]) + tr_date(l[3]) + tr_rev(l[4]) + tr_view_time(l[5])
-    return struct.pack(FMT, *fields)
+    return struct.pack(COL_FMT, *fields)
 
 
 @contextmanager
