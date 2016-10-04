@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from collections import defaultdict
 from datetime import datetime
 import itertools
 import struct
@@ -57,7 +58,7 @@ def select(column_info, table, filter_=None, group_by=None, order=None):
             col_getter = itemgetter(*(col_order))
             for col_n, col in enumerate(col_getter(cols)):
                 if callable(col):
-                    group.append((COL_NAMES[col_n], col(row_vals)))
+                    group.append(col(row_vals))
             groups.append(group)
 
         return groups
@@ -128,15 +129,15 @@ def format(result):
         if isinstance(i, str):
             acc.append(i)
             continue
-        if isinstance(i, tuple):
-            val = i[1]
-            if isinstance(val, set):
-                sub_acc = []
-                for v in val:
-                    sub_acc.append(v)
-                acc += ['[' + ','.join(sub_acc) + ']']
-            else:
-                acc.append(val)
+        if isinstance(i, set):
+            vals = i
+            sub_acc = []
+            for v in vals:
+                sub_acc.append(v)
+            acc += ['[' + ','.join(sub_acc) + ']']
+        else:
+            acc.append(val)
+
     return ','.join(str(e) for e in acc)
 
 
