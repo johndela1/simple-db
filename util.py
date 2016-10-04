@@ -1,3 +1,4 @@
+from datetime import datetime
 from operator import and_, or_
 import pyparsing as pp
 
@@ -53,16 +54,30 @@ def parse(expr_string, row):
         return []
 
 
-    operator = pp.Regex("=").setName("operator")
-    number = pp.Regex(r"[+-]?\d+(:?\.\d*)?(:?[eE][+-]?\d+)?")
-    identifier = pp.Word(pp.alphas, pp.alphanums + "_")
+    def to_date(s, loc, tokens):
+        y, m, d = (int(i) for i in tokens[0].split('-'))
+        return datetime(y, m, d)
+    date = pp.Regex(r'\d{4}[-/]\d{2}[-/]\d{2}')
+    date.setParseAction(to_date)
+
+    real = pp.Combine(
+            pp.Word(pp.nums) + "." + pp.Optional(
+                pp.Word(pp.nums))).setName("real")
+    real = pp.Regex(r'\d+\.\d+')
+
+    real.setParseAction(lambda s, l, t: float(t[0]))
+
+    operator = pp.Regex('=').setName('operator')
+    number = pp.Regex(r'\d+(:?\.\d*)?(:?[eE][+-]?\d+)?')
+    number = pp.Word(pp.nums)
+    identifier = pp.Word(pp.srange("[a-zA-Z]"))
     parser = pp.QuotedString(quoteChar = '"')
-    comparison_term = identifier | number | parser
+    comparison_term = real | date | identifier | number | parser
     condition = pp.Group(comparison_term + operator + comparison_term)
 
     expr = pp.operatorPrecedence(condition,[
-        ("AND", 2, pp.opAssoc.LEFT, ),
-        ("OR", 2, pp.opAssoc.LEFT, ),
+        ('AND', 2, pp.opAssoc.LEFT, ),
+        ('OR', 2, pp.opAssoc.LEFT, ),
         ]
         )
     res = expr.parseString(expr_string)[0]
