@@ -2,7 +2,7 @@
 
 import argparse
 from datetime import datetime
-from itertools import groupby
+import itertools
 import struct
 import sys
 from mmap import mmap
@@ -33,27 +33,36 @@ def deserialize(rec):
     return row
 
 
-def select(columns, table, filter_=None, group=None, order=None):
+def select(column_info, table, filter_=None, group_by=None, order=None):
+    col_order = column_info[0]
+    cols = column_info[1:]
     rs = []
+
     for rec in table:
         row = deserialize(rec)
         if filter_ is None or where(row, filter_):
             rs.append(row)
-    if group:
-        group_col = col_num(group)
-        agg_func = columns[4] #XXX change literal
-        def group_func(x):
-            x[group_col]
 
-        return [(col, agg_func(rows))
-                for col, rows
-                in groupby(sorted(rs, key=group_func), group_func)]
+    if group_by:
+        def group_func(row):
+            return row[col_num(group_by)]
+        groups = []
+        for col_val, row_vals in itertools.groupby(
+                sorted(rs, key=group_func), group_func):
+            row_vals = list(row_vals)
+            group = []
+            group.append(col_val)
+            for col_n, col in enumerate(cols):
+                if callable(col):
+                    group.append((COL_NAMES[col_n], col(row_vals)))
+            groups.append(group)
+        return groups
 
-    if order is not None:
+    if order:
         order_by_col_names = order.split(',')
         rs.sort(key=itemgetter(*col_nums(order_by_col_names)))
 
-    col_getter = itemgetter(*(col_nums(columns)))
+    col_getter = itemgetter(*(col_order))
     return (col_getter(r) for r in rs)
 
 
@@ -82,18 +91,19 @@ def columns(names):
     ret = []
     col_names = names.split(',')
     stripped_col_names = [n.split(':')[0] for n in col_names]
+    ret.append(col_nums(stripped_col_names))
 
     for col_name in COL_NAMES:
         if col_name not in stripped_col_names:
-            ret.append(False)
+            ret.append(None)
             continue
 
         name_with_agg = col_names[stripped_col_names.index(col_name)]
         if ':' in name_with_agg:
-            c, f = name_with_agg.split(':')
-            agg_col_num = col_nums([c])[0]
+            col, fn_name = name_with_agg.split(':')
+            agg_col_num = col_num(col)
             ret.append(
-                lambda rows: agg_funcs[f.upper()](
+                lambda rows: agg_funcs[fn_name.upper()](
                     [row[agg_col_num] for row in rows]))
         else:
             ret.append(col_name)
