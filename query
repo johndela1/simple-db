@@ -44,20 +44,22 @@ def select(column_info, table, filter_=None, group_by=None, order=None):
             rs.append(row)
 
     if group_by:
-        def group_func(row):
+        def comparator(row):
             return row[col_num(group_by)]
 
         groups = []
 
         for col_val, row_vals in itertools.groupby(
-                sorted(rs, key=group_func), group_func):
+                sorted(rs, key=comparator), comparator):
             row_vals = list(row_vals)
             group = []
             group.append(col_val)
-            for col_n, col in enumerate(cols):
+            col_getter = itemgetter(*(col_order))
+            for col_n, col in enumerate(col_getter(cols)):
                 if callable(col):
                     group.append((COL_NAMES[col_n], col(row_vals)))
             groups.append(group)
+
         return groups
 
     if order:
