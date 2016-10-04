@@ -46,7 +46,9 @@ def select(column_info, table, filter_=None, group_by=None, order=None):
     if group_by:
         def group_func(row):
             return row[col_num(group_by)]
+
         groups = []
+
         for col_val, row_vals in itertools.groupby(
                 sorted(rs, key=group_func), group_func):
             row_vals = list(row_vals)
@@ -67,8 +69,6 @@ def select(column_info, table, filter_=None, group_by=None, order=None):
 
 
 def where(row, filter_expr):
-    if filter_expr is None:
-        return None
     tree = parse(filter_expr, row)
     return eval_(tree)
 
@@ -110,7 +110,33 @@ def columns(names):
             ret.append(agg_func)
         else:
             ret.append(col_name)
+
     return ret
+
+
+def format(result):
+    acc = []
+    for i in result:
+        if isinstance(i, datetime):
+            acc.append(i.strftime('%Y-%m-%d'))
+            continue
+        if isinstance(i, float):
+            acc.append('{0:.2f}'.format(i))
+            continue
+        if isinstance(i, str):
+            acc.append(i)
+            continue
+        if isinstance(i, tuple):
+            val = i[1]
+            if isinstance(val, set):
+                sub_acc = []
+                for v in val:
+                    sub_acc.append(v)
+                acc += ['[' + ','.join(sub_acc) + ']']
+            else:
+                acc.append(val)
+    return ','.join(str(e) for e in acc)
+
 
 
 def parse_args(args):
@@ -137,6 +163,6 @@ if __name__ == '__main__':
                 args.order,
             )
             for r in rs:
-                print(r)
+                print(format(r))
     except FileNotFoundError as e:
         print(e, file=sys.stdout)
