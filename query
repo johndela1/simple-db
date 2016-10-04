@@ -98,13 +98,16 @@ def columns(names):
             ret.append(None)
             continue
 
-        name_with_agg = col_names[stripped_col_names.index(col_name)]
-        if ':' in name_with_agg:
-            col, fn_name = name_with_agg.split(':')
+        name_with_fn = col_names[stripped_col_names.index(col_name)]
+        if ':' in name_with_fn:
+            col, fn_name = name_with_fn.split(':')
             agg_col_num = col_num(col)
-            ret.append(
-                lambda rows: agg_funcs[fn_name.upper()](
-                    [row[agg_col_num] for row in rows]))
+
+            def agg_func(rows, fn=agg_funcs[fn_name.upper()],
+                         agg_col_num=agg_col_num):
+                return fn([row[agg_col_num] for row in rows])
+
+            ret.append(agg_func)
         else:
             ret.append(col_name)
     return ret
