@@ -68,8 +68,14 @@ def select(column_info, table, filter_=None, group_by=None, order=None):
         rs.sort(key=itemgetter(*col_nums(order_by_col_names)))
 
     col_getter = itemgetter(*(col_order))
-    return (col_getter(r) for r in rs)
-
+    ret_cols = []
+    for r in rs:
+        c = col_getter(r)
+        if len(col_order) == 1:
+            ret_cols.append((c,))
+        else:
+            ret_cols.append(c)
+    return ret_cols
 
 def where(row, filter_expr):
     tree = parse(filter_expr, row)
