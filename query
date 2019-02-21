@@ -12,22 +12,18 @@ from operator import itemgetter
 from util import col_num, col_nums, COL_NAMES, COL_FMT, parse, eval_
 
 
-def date(date_string): return datetime.strptime(date_string, '%Y-%m-%d')
-COL_TYPES = [str, str, str, date, float, int]
-
-
 def deserialize(rec):
     def tr_str(t):
         return [b.decode('utf-8').rstrip('\0') for b in t]
 
     def tr_date(i):
         year = i >> 0x9
-        month = i >> 0x5 & 0xf
+        month = (i >> 0x5) & 0xf
         day = i & 0x1f
         return [datetime(year, month, day)]
 
     def tr_rev(i):
-        return [float(i/100)]
+        return [float(i)]
 
     raw = struct.unpack(COL_FMT, rec)
     row = tr_str(raw[0:3]) + tr_date(raw[3]) + tr_rev(raw[4]) + [raw[5]]
@@ -163,7 +159,7 @@ if __name__ == '__main__':
     RECSIZE = 256
 
     try:
-        with open('data.db', 'r+b') as f, mmap(f.fileno(), 0) as table:
+        with open('db.bin', 'r+b') as f, mmap(f.fileno(), 0) as table:
             rs = select(
                 columns(args.select), 
                 from_(table),

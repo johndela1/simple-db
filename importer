@@ -2,82 +2,84 @@
 
 import argparse
 from contextlib import contextmanager
-import _pickle as pickle
 import fileinput
 from hashlib import sha1
-from mmap import mmap
+import _pickle as pickle
 import struct
 import sys
 
 from util import COL_FMT
+COL_NAMES = ['STB', 'TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME']
 
 
-def serialize(l):
+def serialize(rec):
     def tr_str(s):
         return [bytes(e, 'utf-8') for e in s]
-
     def tr_date(s):
         year, month, day = [int(s) for s in s.split('-')]
         return [year << 9 | month << 5 | day]
-
     def tr_rev(s):
-        return [int(float(s)*100)]
-
+        return [float(s)]
     def tr_view_time(s):
         hours, minutes = [int(e) for e in s.split(':')]
         return [hours * 60 + minutes]
 
-    fields = tr_str(l[:3]) + tr_date(l[3]) + tr_rev(l[4]) + tr_view_time(l[5])
-    return struct.pack(COL_FMT, *fields)
-
+    cols = (
+        tr_str([rec['STB'], rec['TITLE'], rec['PROVIDER']])
+        + tr_date(rec['DATE'])
+        + tr_rev(rec['REV'])
+        + tr_view_time(rec['VIEW_TIME'])
+    )
+    return struct.pack(COL_FMT, *cols)
 
 @contextmanager
-def load_idx():
+def load_index(fname):
     try:
-        with open('data.idx', 'rb') as idx_file:
-            idx = pickle.load(idx_file)
+        with open(fname, 'rb') as index_file:
+            index = pickle.load(index_file)
     except FileNotFoundError:
-        idx = {}
-    yield idx
-    with open('data.idx', 'wb') as idx_file:
-        pickle.dump(idx, idx_file)
+        index = {}
+    yield index
+    with open(fname, 'wb') as index_file:
+        pickle.dump(index, index_file)
 
-
-def key(row):
-    cols = row.rstrip('\n').split('|')
+def gen_key(rec):
     return sha1(
-        (cols[0]+cols[1]+cols[3]).encode()
+        (rec['STB']+rec['TITLE']+rec['DATE']).encode()
     ).digest()
 
-
-def upsert(db_file, idx, row):
-
-    rec = serialize(row.split('|'))
-    k = key(row)
-    pos = idx.get(k, None)
+def upsert(db_file, index, rec):
+    key = gen_key(rec)
+    value = serialize(rec)
+    pos = index.get(key)
 
     if pos is not None:
         end_pos = db_file.tell()
         db_file.seek(pos)
-        db_file.write(rec)
+        db_file.write(value)
         db_file.seek(end_pos)
     else:
-        idx[k] = db_file.tell()
-        db_file.write(rec)
-
+        index[key] = db_file.tell()
+        db_file.write(value)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("infiles", nargs="*", default='-')
+    parser.add_argument("name", help="name of database")
     args = parser.parse_args()
 
-    with open('data.db', 'w+b') as db_file, load_idx() as idx:
-        for row in fileinput.input(args.infiles):
-            if fileinput.isfirstline():
-                continue
-            upsert(db_file, idx, row)
+    db_fname = args.name+'.bin'
+    index_fname = args.name+'.idx'
 
-# stb, title, provider, date, rev, view_time
+    with open(db_fname, 'w+b') as db_file, load_index(index_fname) as index:
+        for line in fileinput.input('-'):
+            cols = line.strip().split('|')
+            if fileinput.isfirstline():
+                col_names = cols
+                assert(col_names == COL_NAMES)
+                continue
+            rec = dict(zip(col_names, cols))
+            upsert(db_file, index, rec)
+
+# Records in the datastore should be unique by STB, TITLE and DATE.
 # Subsequent imports with the same logical record should overwrite
 # the earlier records.
-# Records in the datastore should be unique by STB, TITLE and DATE.
