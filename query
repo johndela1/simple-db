@@ -141,8 +141,8 @@ def format(result):
             for v in vals:
                 sub_acc.append(v)
             acc += ['[' + ','.join(sub_acc) + ']']
-        else:
-            acc.append(val)
+        if isinstance(i, int):
+            acc.append(i)
 
     return ','.join(str(e) for e in acc)
 
