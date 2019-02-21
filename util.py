@@ -53,10 +53,10 @@ def parse(expr_string, row):
                 return []
         return []
 
-
     def to_date(s, loc, tokens):
         y, m, d = (int(i) for i in tokens[0].split('-'))
         return datetime(y, m, d)
+
     date = pp.Regex(r'\d{4}[-/]\d{2}[-/]\d{2}')
     date.setParseAction(to_date)
 
