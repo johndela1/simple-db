@@ -3,7 +3,7 @@ from operator import and_, or_
 import pyparsing as pp
 
 COL_NAMES = ['STB', 'TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME']
-COL_FMT = '64s 64s 64s I H H 56x'
+COL_FMT = '64s 64s 64s I e H 56x'
 
 def nested(seq):
     return any(True for i in seq if type(i) == pp.ParseResults)
