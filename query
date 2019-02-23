@@ -6,7 +6,7 @@ from datetime import datetime
 import itertools
 import struct
 import sys
-from mmap import mmap
+import mmap
 from operator import itemgetter
 
 from util import col_num, col_nums, COL_NAMES, COL_FMT, parse, eval_
@@ -159,7 +159,8 @@ if __name__ == '__main__':
     RECSIZE = 256
 
     try:
-        with open('db.bin', 'r+b') as f, mmap(f.fileno(), 0) as table:
+        with open('db.bin', 'rb') as f,
+        mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as table:
             rs = select(
                 columns(args.select), 
                 from_(table),
