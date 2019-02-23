@@ -79,15 +79,11 @@ def upsert(db_file, index_ref, rec):
     value = serialize(rec)
     pos = index_ref.get(key)
     if pos is not None:
-        print("update", pos);
-        end_pos = db_file.tell()
         db_file.seek(pos)
         db_file.write(value)
-        db_file.seek(end_pos)
     else:
         db_file.seek(0,2) #seek to end
         pos = db_file.tell()
-        print("insert", pos);
         db_file.write(value)
         index_ref[key] = pos
 
