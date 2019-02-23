@@ -88,15 +88,17 @@ def upsert(db_file, index_ref, rec):
         index_ref[key] = pos
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('name', help='name of database')
+    parser = argparse.ArgumentParser(description='read standard input')
+    parser.add_argument('name', help='name of output database')
     parser.add_argument('-d', '--dump', action='store_true', help='dump database')
     args = parser.parse_args()
     db_fname = args.name+'.bin'
     index_fname = args.name+'.idx'
     Path(db_fname).touch()
+
     if args.dump:
         dump_and_exit(db_fname)
+
     with open(db_fname, 'r+b') as db_file, use_index(index_fname) as index_ref:
         for line in fileinput.input('-'):
             cols = line.strip().split('|')
@@ -110,3 +112,12 @@ if __name__ == '__main__':
 # Records in the datastore should be unique by STB, TITLE and DATE.
 # Subsequent imports with the same logical record should overwrite
 # the earlier records.
+#
+# ./importer db <<EOF
+# STB|TITLE|PROVIDER|DATE|REV|VIEW_TIME
+# stb1|the matrix|warner bros|2014-04-01|4.00|1:30
+# stb1|unbreakable|buena vista|2014-04-03|6.00|2:05
+# stb2|the hobbit|warner bros|2014-04-02|8.00|2:45
+# stb3|the matrix|warner bros|2014-04-02|4.00|1:05
+# EOF
+# ./importer db --dump
